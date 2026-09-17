@@ -52,8 +52,5 @@ compile_commands.json
 
 # VSCode
 .vscode/*
-!.vscode/extensions.json
-.DS_Store
 
 .vs/*
-/CLAUDE.md

@@ -36,7 +36,8 @@ void Box2DShape2D::remove_object_reference(Box2DCollisionObject2D *p_owner) {
 }
 
 void Box2DShape2D::remove_from_all_objects() {
-	const auto ref_counts_by_owner_copy = ref_counts_by_object;
+	// Iterate a snapshot, since dropping a shape reaches back in and erases the entry.
+	const HashMap<Box2DCollisionObject2D *, int> ref_counts_by_owner_copy(ref_counts_by_object);
 	for (const auto &[owner, ref_count] : ref_counts_by_owner_copy) {
 		owner->remove_shape(this);
 	}

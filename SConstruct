@@ -43,7 +43,9 @@ Run the following command to download box2d:
     git submodule update --init --recursive""")
     sys.exit(1)
 
-env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs})
+# godot-cpp carries an API JSON per Godot release and refuses to guess, so name the one we target.
+# The source uses signatures that only exist from 4.7 on, so this is not freely movable.
+env = SConscript("godot-cpp/SConstruct", {"env": env, "customs": customs, "api_version": "4.7"})
 
 
 env.Append(CPPPATH=["src/"])

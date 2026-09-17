@@ -2,7 +2,7 @@
   <img src="logo.png" />
 </p>
 
-Godot Box2D v3 is a high-performance physics extension for Godot 4.3+ that implements Box2D v3. It can be considered a successor to the [Godot Box2D](https://github.com/appsinacup/godot-box2d) extension.
+Godot Box2D v3 is a high-performance physics extension for Godot 4.7+ that implements Box2D v3. It can be considered a successor to the [Godot Box2D](https://github.com/appsinacup/godot-box2d) extension.
 
 It is a drop-in replacement for Godot Physics 2D. There is no engine fork and no new node types: the
 existing `RigidBody2D`, `CharacterBody2D`, `Area2D` and joint nodes are all served by Box2D once the
@@ -17,7 +17,7 @@ extension is enabled.
 
 ## Requirements
 
-- Godot 4.3 or later
+- Godot 4.7 or later
 - To build from source: Python 3 and [SCons](https://scons.org/)
 
 ## Installation
@@ -85,7 +85,7 @@ Every push is built for Windows, Linux, macOS, Android, iOS and web by
 ## The demo project
 
 `demo/` is an ordinary Godot project and doubles as the test suite, as there is no automated one.
-Build first, then open `demo/` in Godot 4.3+; it already selects the Box2D server. Each root scene
+Build first, then open `demo/` in Godot 4.7+; it already selects the Box2D server. Each root scene
 exercises one subsystem:
 
 | Scene | Covers |
@@ -172,6 +172,8 @@ Most of the Physics API has been implemented, but the following features do not 
   collision margin. A rigid body that ends up overlapping a one-way platform from above is pushed
   back out rather than allowed to continue through. Character movement (`CharacterBody2D`) still
   accounts for penetration depth and margin.
+- The per-shape one-way collision direction Godot 4.7 supplies is ignored. The normal is still
+  derived from the shape transform.
 - Collision exceptions place the two bodies in the same simulation island, so they sleep and wake
   together, and adding one at runtime wakes both.
 - Removing a collision exception between two bodies that are already overlapping and at rest does

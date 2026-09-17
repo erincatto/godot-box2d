@@ -70,7 +70,7 @@ void Box2DDampedSpringJoint2D::update_stiffness() {
 		mass = is_a_dynamic ? mass_a : mass_b;
 	}
 
-	distance_def.hertz = Math::sqrt(stiffness / mass) / (2.0 * Math_PI);
+	distance_def.hertz = Math::sqrt(stiffness / mass) / (2.0 * Math::PI);
 
 	if (b2Joint_IsValid(joint_id)) {
 		b2DistanceJoint_SetSpringHertz(joint_id, distance_def.hertz);

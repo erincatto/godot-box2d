@@ -1,10 +1,10 @@
 [submodule "godot-cpp"]
 	path = godot-cpp
 	url = https://github.com/godotengine/godot-cpp.git
-	branch = 4.3
 [submodule "box2d"]
 	path = thirdparty/box2d
 	url = https://github.com/erincatto/box2d
+	branch = main
 	ignore = dirty
 [submodule "tracy"]
 	path = thirdparty/tracy

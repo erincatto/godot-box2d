@@ -93,7 +93,7 @@ public:
 	RID _body_get_shape(const RID &p_body, int32_t p_shape_idx) const override;
 	Transform2D _body_get_shape_transform(const RID &p_body, int32_t p_shape_idx) const override;
 	void _body_set_shape_disabled(const RID &p_body, int32_t p_shape_idx, bool p_disabled) override;
-	void _body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin) override;
+	void _body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin, const Vector2 &p_direction) override;
 	void _body_remove_shape(const RID &p_body, int32_t p_shape_idx) override;
 	void _body_clear_shapes(const RID &p_body) override;
 	void _body_attach_object_instance_id(const RID &p_body, uint64_t p_id) override;

@@ -59,7 +59,7 @@ int32_t Box2DDirectSpaceState2D::_intersect_point(
 		result.rid = overlap.object->get_rid();
 		result.collider_id = overlap.object->get_instance_id();
 		if (result.collider_id.is_valid()) {
-			result.collider = get_instance_hack(result.collider_id);
+			result.collider = ObjectDB::get_instance(result.collider_id);
 		}
 	}
 
@@ -97,7 +97,7 @@ bool Box2DDirectSpaceState2D::_intersect_ray(
 			p_result->rid = overlap.object->get_rid();
 			p_result->collider_id = overlap.object->get_instance_id();
 			if (p_result->collider_id.is_valid()) {
-				p_result->collider = get_instance_hack(p_result->collider_id);
+				p_result->collider = ObjectDB::get_instance(p_result->collider_id);
 			}
 			return true;
 		}
@@ -125,7 +125,7 @@ bool Box2DDirectSpaceState2D::_intersect_ray(
 	result.rid = hit.object->get_rid();
 	result.collider_id = hit.object->get_instance_id();
 	if (result.collider_id.is_valid()) {
-		result.collider = get_instance_hack(result.collider_id);
+		result.collider = ObjectDB::get_instance(result.collider_id);
 	}
 
 	return true;
@@ -175,7 +175,7 @@ int32_t Box2DDirectSpaceState2D::_intersect_shape(
 		result.rid = hit.object->get_rid();
 		result.collider_id = hit.object->get_instance_id();
 		if (result.collider_id.is_valid()) {
-			result.collider = get_instance_hack(result.collider_id);
+			result.collider = ObjectDB::get_instance(result.collider_id);
 		}
 
 		count++;
@@ -426,7 +426,7 @@ Dictionary Box2DDirectSpaceState2D::cast_shape(const Ref<PhysicsShapeQueryParame
 	ObjectID id = hit.object->get_instance_id();
 	result["collider_id"] = id;
 	if (id.is_valid()) {
-		result["collider"] = get_instance_hack(id);
+		result["collider"] = ObjectDB::get_instance(id);
 	}
 
 	return result;
@@ -483,7 +483,7 @@ TypedArray<Dictionary> Box2DDirectSpaceState2D::cast_shape_all(
 		ObjectID id = hit.object->get_instance_id();
 		result["collider_id"] = id;
 		if (id.is_valid()) {
-			result["collider"] = get_instance_hack(id);
+			result["collider"] = ObjectDB::get_instance(id);
 		}
 		hits.push_back(result);
 	}

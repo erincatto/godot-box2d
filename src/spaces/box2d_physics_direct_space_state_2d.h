@@ -29,11 +29,6 @@ public:
 	Dictionary cast_shape(const Ref<PhysicsShapeQueryParameters2D> &p_parameters);
 	TypedArray<Dictionary> cast_shape_all(const Ref<PhysicsShapeQueryParameters2D> &p_parameters, int32_t p_max_results = 32);
 
-	static Object *get_instance_hack(uint64_t p_object_id) {
-		// ????
-		return reinterpret_cast<Object *>((GodotObject *)(internal::gdextension_interface_object_get_instance_from_id(p_object_id)));
-	}
-
 	b2QueryFilter make_filter(uint64_t p_collision_mask, bool p_collide_bodies, bool p_collide_areas);
 
 private:

@@ -591,7 +591,9 @@ void Box2DPhysicsServer2D::_body_set_shape_disabled(const RID &p_body, int32_t p
 	return body->set_shape_disabled(p_shape_idx, p_disabled);
 }
 
-void Box2DPhysicsServer2D::_body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin) {
+/// Godot supplies a one-way direction as of 4.7. The normal is still derived from the shape
+/// transform, so a direction that disagrees with it is ignored for now.
+void Box2DPhysicsServer2D::_body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin, const Vector2 &p_direction) {
 	Box2DBody2D *body = body_owner.get_or_null(p_body);
 	ERR_FAIL_NULL(body);
 	return body->set_shape_one_way_collision(p_shape_idx, p_enable, p_margin);

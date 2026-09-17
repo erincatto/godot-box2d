@@ -29,6 +29,11 @@ public:
 	float _get_inverse_mass() const override;
 	float _get_inverse_inertia() const override;
 
+	void _set_collision_layer(uint32_t p_layer) override;
+	uint32_t _get_collision_layer() const override;
+	void _set_collision_mask(uint32_t p_mask) override;
+	uint32_t _get_collision_mask() const override;
+
 	void _set_linear_velocity(const Vector2 &p_velocity) override;
 	Vector2 _get_linear_velocity() const override;
 

@@ -1,0 +1,245 @@
+#include "box2d_space_2d.h"
+
+#include "../box2d_project_settings.h"
+#include <godot_cpp/classes/os.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+void task_function(void *p_userdata) {
+	TracyZoneScoped("Box2D Task");
+
+	Box2DTaskData *data = static_cast<Box2DTaskData *>(p_userdata);
+	data->task(data->task_context);
+}
+
+/// Box2D packs the worker index into the task context, so one enqueue is one run of one callback.
+void *enqueue_task_callback(b2TaskCallback *task, void *taskContext, void *userContext) {
+	Box2DTaskData *task_data = new Box2DTaskData{ 0, task, taskContext };
+
+	static const String task_name("Box2D Task");
+
+	task_data->task_id = WorkerThreadPool::get_singleton()->add_native_task(task_function, task_data, true, task_name);
+
+	return task_data;
+}
+
+void finish_task_callback(void *taskPtr, void *userContext) {
+	if (taskPtr) {
+		Box2DTaskData *task_data = static_cast<Box2DTaskData *>(taskPtr);
+		WorkerThreadPool::get_singleton()->wait_for_task_completion(task_data->task_id);
+		delete task_data;
+	}
+}
+
+bool box2d_godot_presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Pos point, b2Vec2 normal, void *context) {
+	const Box2DShapeInstance *shape_a = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdA));
+	const Box2DShapeInstance *shape_b = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdB));
+
+	if (!shape_a->has_one_way_collision() && !shape_b->has_one_way_collision()) {
+		return true;
+	}
+
+	Vector2 godot_normal = to_godot_normalized(normal);
+
+	// The normal points from A to B, so B sees it reversed.
+	return !shape_a->should_filter_one_way_collision(godot_normal) &&
+			!shape_b->should_filter_one_way_collision(-godot_normal);
+}
+
+float godot_friction_callback(float frictionA, uint64_t materialA, float frictionB, uint64_t materialB) {
+	return Math::abs(Math::min(frictionA, frictionB));
+}
+
+float godot_restitution_callback(float restitutionA, uint64_t materialA, float restitutionB, uint64_t materialB) {
+	return Math::clamp(restitutionA + restitutionB, 0.0f, 1.0f);
+}
+
+Box2DSpace2D::Box2DSpace2D() {
+	substeps = Box2DProjectSettings::get_substeps();
+
+	// Gravity is changed by the default area immediately - the value set here doesn't matter.
+	default_gravity = Vector2(0.0, 980.0);
+
+	int hardware_thread_count = OS::get_singleton()->get_processor_count();
+	int max_thread_count = Box2DProjectSettings::get_max_threads();
+
+	if (max_thread_count < 1) {
+		max_tasks = hardware_thread_count;
+	} else {
+		max_tasks = (max_thread_count < hardware_thread_count) ? max_thread_count : hardware_thread_count;
+	}
+
+	max_tasks = Math::clamp(max_tasks, 0, 8);
+
+	world_def.gravity = to_box2d(default_gravity);
+	world_def.contactHertz = Box2DProjectSettings::get_contact_hertz();
+	world_def.contactDampingRatio = Box2DProjectSettings::get_contact_damping_ratio();
+
+	if (Box2DProjectSettings::get_friction_mixing_rule() == Box2DMixingRule::MIXING_RULE_GODOT) {
+		world_def.frictionCallback = godot_friction_callback;
+	}
+
+	if (Box2DProjectSettings::get_restitution_mixing_rule() == Box2DMixingRule::MIXING_RULE_GODOT) {
+		world_def.restitutionCallback = godot_restitution_callback;
+	}
+
+	world_def.workerCount = max_tasks;
+	world_def.userTaskContext = this;
+	world_def.enqueueTask = enqueue_task_callback;
+	world_def.finishTask = finish_task_callback;
+
+	world_id = b2CreateWorld(&world_def);
+
+	if (Box2DProjectSettings::get_presolve_enabled()) {
+		b2World_SetPreSolveCallback(world_id, box2d_godot_presolve, this);
+	}
+}
+
+Box2DSpace2D::~Box2DSpace2D() {
+	if (direct_state) {
+		memdelete(direct_state);
+	}
+
+	if (b2World_IsValid(world_id)) {
+		b2DestroyWorld(world_id);
+	}
+
+	world_id = b2_nullWorldId;
+}
+
+void Box2DSpace2D::step(float p_step) {
+	locked = true;
+
+	if (linear_damp_changed || angular_damp_changed) {
+		// TODO: Notify bodies of change to default damping values here
+		// for (Box2DBody2D* body : bodies)
+		//     body->update_linear_damping();
+		linear_damp_changed = false;
+		angular_damp_changed = false;
+	}
+
+	for (Box2DBody2D *body : constant_force_list) {
+		body->apply_constant_forces();
+	}
+
+	for (Box2DArea2D *area : areas_to_step) {
+		area->apply_overrides();
+	}
+
+	for (Box2DBody2D *body : bodies_with_overrides) {
+		body->apply_area_overrides();
+	}
+	bodies_with_overrides.clear();
+
+	b2World_Step(world_id, p_step, substeps);
+
+	locked = false;
+	last_step = p_step;
+}
+
+void Box2DSpace2D::rebuild_exception_joints(const Box2DPhysicsServer2D *p_server) {
+	if (!exceptions_dirty) {
+		return;
+	}
+	exceptions_dirty = false;
+
+	LocalVector<Box2DBody2D *> emptied;
+
+	for (Box2DBody2D *body : bodies_with_exceptions) {
+		body->rebuild_exception_joints(p_server);
+		if (!body->has_collision_exceptions()) {
+			emptied.push_back(body);
+		}
+	}
+
+	// Dropped only after the rebuild, which is what tears their last joint down.
+	for (Box2DBody2D *body : emptied) {
+		bodies_with_exceptions.erase(body);
+	}
+}
+
+void Box2DSpace2D::sync_state() {
+	TracyZoneScoped("Box2DSpace2D::sync_state");
+
+	for (Box2DBody2D *body : force_integration_list) {
+		body->call_force_integration_callback();
+	}
+
+	b2BodyEvents body_events = b2World_GetBodyEvents(world_id);
+
+	for (int i = 0; i < body_events.moveCount; ++i) {
+		const b2BodyMoveEvent *event = body_events.moveEvents + i;
+		Box2DCollisionObject2D *object = static_cast<Box2DCollisionObject2D *>(event->userData);
+		Box2DBody2D *body = object->as_body();
+		if (!body) {
+			continue;
+		}
+		body->sync_state(event->transform, event->fellAsleep);
+	}
+
+	b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
+
+	for (int i = 0; i < sensor_events.beginCount; ++i) {
+		const b2SensorBeginTouchEvent *begin_event = sensor_events.beginEvents + i;
+
+		Box2DShapeInstance *self_shape = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(begin_event->sensorShapeId));
+		Box2DCollisionObject2D *self_object = static_cast<Box2DCollisionObject2D *>(b2Body_GetUserData(b2Shape_GetBody(begin_event->sensorShapeId)));
+		ERR_CONTINUE_MSG(!self_object->is_area(), "Received a sensor event from a Rigidbody. This should never happen!");
+
+		Box2DArea2D *area = self_object->as_area();
+
+		Box2DShapeInstance *other_shape = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(begin_event->visitorShapeId));
+
+		area->add_overlap(other_shape, self_shape);
+	}
+
+	HashSet<Box2DArea2D *> areas_with_destroyed_overlaps;
+
+	for (int i = 0; i < sensor_events.endCount; ++i) {
+		const b2SensorEndTouchEvent *end_event = sensor_events.endEvents + i;
+
+		// Sensor end events can occur when overlapping shapes are destroyed or moved.
+		bool sensor_shape_exists = b2Shape_IsValid(end_event->sensorShapeId);
+		bool other_shape_exists = b2Shape_IsValid(end_event->visitorShapeId);
+
+		if (!sensor_shape_exists && !other_shape_exists) {
+			continue;
+		}
+
+		if (!sensor_shape_exists && other_shape_exists) {
+			// Areas update overlaps on their own when destroyed or modified.
+			continue;
+		}
+
+		if (sensor_shape_exists && !other_shape_exists) {
+			// Notify the Area that a shape has been destroyed
+			Box2DArea2D *area = static_cast<Box2DArea2D *>(b2Body_GetUserData(b2Shape_GetBody(end_event->sensorShapeId)));
+			areas_with_destroyed_overlaps.insert(area);
+		}
+
+		Box2DShapeInstance *self_shape = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(end_event->sensorShapeId));
+		Box2DCollisionObject2D *self_object = static_cast<Box2DCollisionObject2D *>(b2Body_GetUserData(b2Shape_GetBody(end_event->sensorShapeId)));
+		ERR_CONTINUE_MSG(!self_object->is_area(), "Received a sensor event from a Rigidbody. This should never happen!");
+
+		Box2DArea2D *area = static_cast<Box2DArea2D *>(self_object);
+
+		Box2DShapeInstance *other_shape = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(end_event->visitorShapeId));
+
+		area->remove_overlap(other_shape, self_shape);
+	}
+
+	for (Box2DArea2D *area : areas_with_destroyed_overlaps) {
+		area->update_overlaps();
+	}
+}
+
+Box2DDirectSpaceState2D *Box2DSpace2D::get_direct_state() {
+	if (!direct_state) {
+		direct_state = memnew(Box2DDirectSpaceState2D(this));
+	}
+	return direct_state;
+}
+
+void Box2DSpace2D::set_default_gravity(Vector2 p_gravity) {
+	default_gravity = p_gravity;
+	b2World_SetGravity(world_id, to_box2d(default_gravity));
+}

@@ -1,0 +1,310 @@
+#pragma once
+
+#include "box2d/box2d.h"
+#include "box2d/constants.h"
+#include <godot_cpp/templates/local_vector.hpp>
+#include <godot_cpp/templates/vector.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
+
+#ifdef TRACY_ENABLE
+#include "../thirdparty/tracy/public/tracy/Tracy.hpp"
+#define TracyZoneScoped(name) ZoneScopedN(name)
+#else
+#define TracyZoneScoped(name)
+#endif
+
+using namespace godot;
+
+/// Box2D is told how large a meter is at startup, so it scales its own tolerances and def
+/// defaults and the simulation runs directly in pixels. Nothing crossing the boundary needs
+/// scaling, which is what keeps torque, inertia and angular velocity from each needing a
+/// different power of the pixel scale.
+void box2d_set_pixels_per_meter(float p_value);
+
+/// Mask bit used by all bodies.
+const uint64_t BODY_MASK_BIT = (1ULL << 63);
+
+/// Mask bit used by all areas.
+const uint64_t AREA_MASK_BIT = (1ULL << 62);
+
+/// Mask bit used by all monitorable areas.
+const uint64_t AREA_MONITORABLE_MASK_BIT = (1ULL << 61);
+
+_FORCE_INLINE_ Vector2 to_godot(const b2Vec2 p_vec) {
+	return Vector2(p_vec.x, p_vec.y);
+}
+
+_FORCE_INLINE_ Vector2 to_godot_normalized(const b2Vec2 p_vec) {
+	return Vector2(p_vec.x, p_vec.y).normalized();
+}
+
+_FORCE_INLINE_ b2Vec2 to_box2d(const Vector2 p_vec) {
+	return b2Vec2{ (float)p_vec.x, (float)p_vec.y };
+}
+
+_FORCE_INLINE_ b2Vec2 to_box2d_normalized(const Vector2 p_vec) {
+	return b2Normalize(b2Vec2{ (float)p_vec.x, (float)p_vec.y });
+}
+
+/// Values are 1:1 across the boundary. These remain as the narrowing point for double builds
+/// and to mark where a quantity changes hands.
+_FORCE_INLINE_ float to_box2d(float p_value) {
+	return p_value;
+}
+
+_FORCE_INLINE_ float to_godot(float p_value) {
+	return p_value;
+}
+
+_FORCE_INLINE_ b2Transform to_box2d(Transform2D p_transform) {
+	return b2Transform{ to_box2d(p_transform.get_origin()), b2MakeRot(p_transform.get_rotation()) };
+}
+
+/// Range for iterating body shapes.
+class BodyShapeRange {
+public:
+	explicit BodyShapeRange(b2BodyId body_id) :
+			body_id(body_id), shape_ids(nullptr) {
+		shape_count = b2Body_GetShapeCount(body_id);
+		if (shape_count == 0) {
+			return;
+		}
+		shape_ids = new b2ShapeId[shape_count];
+		b2Body_GetShapes(body_id, shape_ids, shape_count);
+	}
+
+	~BodyShapeRange() {
+		delete[] shape_ids;
+	}
+
+	class Iterator {
+	public:
+		Iterator(b2ShapeId *ids, int index) :
+				shape_ids(ids), index(index) {}
+
+		b2ShapeId operator*() const {
+			return shape_ids[index];
+		}
+
+		Iterator &operator++() {
+			++index;
+			return *this;
+		}
+
+		bool operator!=(const Iterator &other) const {
+			return index != other.index;
+		}
+
+	private:
+		b2ShapeId *shape_ids;
+		int index;
+	};
+
+	Iterator begin() const {
+		return Iterator(shape_ids, 0);
+	}
+
+	Iterator end() const {
+		return Iterator(shape_ids, shape_count);
+	}
+
+private:
+	b2BodyId body_id;
+	b2ShapeId *shape_ids;
+	int shape_count = 0;
+};
+
+/// Range for iterating body joints.
+class BodyJointRange {
+public:
+	explicit BodyJointRange(b2BodyId body_id) :
+			body_id(body_id), joint_ids(nullptr) {
+		joint_count = b2Body_GetJointCount(body_id);
+		if (joint_count == 0) {
+			return;
+		}
+		joint_ids = new b2JointId[joint_count];
+		b2Body_GetJoints(body_id, joint_ids, joint_count);
+	}
+
+	~BodyJointRange() {
+		delete[] joint_ids;
+	}
+
+	class Iterator {
+	public:
+		Iterator(b2JointId *ids, int index) :
+				joint_ids(ids), index(index) {}
+
+		b2JointId operator*() const {
+			return joint_ids[index];
+		}
+
+		Iterator &operator++() {
+			++index;
+			return *this;
+		}
+
+		bool operator!=(const Iterator &other) const {
+			return index != other.index;
+		}
+
+	private:
+		b2JointId *joint_ids;
+		int index;
+	};
+
+	Iterator begin() const {
+		return Iterator(joint_ids, 0);
+	}
+
+	Iterator end() const {
+		return Iterator(joint_ids, joint_count);
+	}
+
+private:
+	b2BodyId body_id;
+	b2JointId *joint_ids;
+	int joint_count = 0;
+};
+
+struct ShapeCollidePoint {
+	Vector2 point = Vector2();
+	/// Positive if penetrating
+	float depth = 0.0f;
+};
+
+struct ShapeCollideResult {
+	ShapeCollidePoint points[2];
+	Vector2 normal = Vector2();
+	int32_t point_count = 0;
+
+	ShapeCollidePoint get_deepest_point() const {
+		ERR_FAIL_COND_V(point_count == 0, {});
+		if (point_count == 2) {
+			return points[0].depth > points[1].depth ? points[0] : points[1];
+		} else {
+			return points[0];
+		}
+	}
+};
+
+struct Box2DShapePrimitive {
+	b2ShapeType type = b2ShapeType::b2_shapeTypeCount;
+
+	union {
+		b2Capsule capsule;
+		b2Circle circle;
+		b2Polygon polygon;
+		b2Segment segment;
+		b2ChainSegment chain_segment;
+	};
+
+	Box2DShapePrimitive() = default;
+
+	Box2DShapePrimitive(const b2Capsule &p_shape) :
+			type(b2ShapeType::b2_capsuleShape), capsule(p_shape) {}
+
+	Box2DShapePrimitive(const b2Circle &p_shape) :
+			type(b2ShapeType::b2_circleShape), circle(p_shape) {}
+
+	Box2DShapePrimitive(const b2Polygon &p_shape) :
+			type(b2ShapeType::b2_polygonShape), polygon(p_shape) {}
+
+	Box2DShapePrimitive(const b2Segment &p_shape) :
+			type(b2ShapeType::b2_segmentShape), segment(p_shape) {}
+
+	Box2DShapePrimitive(const b2ChainSegment &p_shape) :
+			type(b2ShapeType::b2_chainSegmentShape), chain_segment(p_shape) {}
+
+	Box2DShapePrimitive(const b2ShapeId &p_shape_id) {
+		type = b2Shape_GetType(p_shape_id);
+		switch (type) {
+			case b2ShapeType::b2_capsuleShape: {
+				capsule = b2Shape_GetCapsule(p_shape_id);
+				break;
+			}
+			case b2ShapeType::b2_circleShape: {
+				circle = b2Shape_GetCircle(p_shape_id);
+				break;
+			}
+			case b2ShapeType::b2_polygonShape: {
+				polygon = b2Shape_GetPolygon(p_shape_id);
+				break;
+			}
+			case b2ShapeType::b2_segmentShape: {
+				segment = b2Shape_GetSegment(p_shape_id);
+				break;
+			}
+			case b2ShapeType::b2_chainSegmentShape: {
+				chain_segment = b2Shape_GetChainSegment(p_shape_id);
+				break;
+			}
+			default: {
+				ERR_FAIL_MSG("Invalid shape type");
+			}
+		}
+	}
+
+	b2ShapeProxy get_proxy() const {
+		switch (type) {
+			case b2ShapeType::b2_capsuleShape:
+				return b2MakeProxy(&capsule.center1, 2, capsule.radius);
+			case b2ShapeType::b2_circleShape:
+				return b2MakeProxy(&circle.center, 1, circle.radius);
+			case b2ShapeType::b2_polygonShape:
+				return b2MakeProxy(polygon.vertices, polygon.count, polygon.radius);
+			case b2ShapeType::b2_segmentShape:
+				return b2MakeProxy(&segment.point1, 2, 0.0f);
+			case b2ShapeType::b2_chainSegmentShape:
+				return b2MakeProxy(&chain_segment.segment.point1, 2, 0.0f);
+			default: {
+				ERR_FAIL_V_MSG(b2ShapeProxy{ 0 }, "Invalid shape type");
+			}
+		}
+	}
+
+	Box2DShapePrimitive inflated(float p_radius) const {
+		Box2DShapePrimitive result;
+
+		switch (type) {
+			case b2ShapeType::b2_capsuleShape: {
+				result = Box2DShapePrimitive(capsule);
+				result.capsule.radius += p_radius;
+				return result;
+			}
+			case b2ShapeType::b2_circleShape: {
+				result = Box2DShapePrimitive(circle);
+				result.circle.radius += p_radius;
+				return result;
+			}
+			case b2ShapeType::b2_polygonShape: {
+				result = Box2DShapePrimitive(polygon);
+				result.polygon.radius += p_radius;
+				return result;
+			}
+			case b2ShapeType::b2_segmentShape: {
+				b2Capsule capsule;
+				capsule.center1 = segment.point1;
+				capsule.center2 = segment.point2;
+				capsule.radius = p_radius;
+				return Box2DShapePrimitive(capsule);
+			}
+			case b2ShapeType::b2_chainSegmentShape: {
+				ERR_FAIL_V_MSG(Box2DShapePrimitive(chain_segment), "Chain segments cannot have a radius");
+			}
+			default: {
+				ERR_FAIL_V_MSG(Box2DShapePrimitive(), "Invalid shape type");
+			}
+		}
+	}
+};
+
+float box2d_compute_safe_fraction(float p_unsafe_fraction, float p_total_distance, float p_amount = -1);
+
+ShapeCollideResult box2d_collide_shapes(
+		const Box2DShapePrimitive &p_shape_a,
+		const b2Transform &xfa,
+		const Box2DShapePrimitive &p_shape_b,
+		const b2Transform &xfb,
+		bool p_swapped = false);

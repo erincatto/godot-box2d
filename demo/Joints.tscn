@@ -1,0 +1,99 @@
+[gd_scene load_steps=7 format=3 uid="uid://chjjbg4uqmayi"]
+
+[ext_resource type="PackedScene" uid="uid://cunci2twkihny" path="res://scenes/Robot.tscn" id="2_dm0gm"]
+[ext_resource type="PackedScene" uid="uid://c36kg7gwvknh4" path="res://scenes/NavigationCamera.tscn" id="2_nwtlb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7hk3i"]
+size = Vector2(634, 132)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_tnpra"]
+radius = 38.0
+height = 270.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fs63m"]
+size = Vector2(113, 158)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xbkjp"]
+radius = 49.0408
+
+[node name="Joints" type="Node2D"]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+position = Vector2(634, 155)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(-4, -1)
+shape = SubResource("RectangleShape2D_7hk3i")
+
+[node name="RigidBody2D" type="RigidBody2D" parent="."]
+position = Vector2(364, 311)
+rotation = 0.789654
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D"]
+position = Vector2(-21.2853, -16.8801)
+rotation = 0.142366
+shape = SubResource("CapsuleShape2D_tnpra")
+
+[node name="PinJoint2D" type="PinJoint2D" parent="."]
+position = Vector2(455, 215)
+node_a = NodePath("../StaticBody2D")
+node_b = NodePath("../RigidBody2D")
+angular_limit_lower = -0.872665
+angular_limit_upper = 0.872665
+motor_target_velocity = 1.74533
+
+[node name="GrooveJoint2D" type="GrooveJoint2D" parent="."]
+position = Vector2(433, 454)
+rotation = -1.78473
+node_a = NodePath("../StaticBody2D")
+node_b = NodePath("../RigidBody2D2")
+length = 370.0
+initial_offset = 236.0
+
+[node name="RigidBody2D2" type="RigidBody2D" parent="."]
+position = Vector2(663, 371)
+mass = 0.1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D2"]
+position = Vector2(-2, 36)
+rotation = -0.225776
+shape = SubResource("RectangleShape2D_fs63m")
+
+[node name="DampedSpringJoint2D" type="DampedSpringJoint2D" parent="."]
+position = Vector2(674, 469)
+node_a = NodePath("../RigidBody2D2")
+node_b = NodePath("../Robot")
+rest_length = 50.0
+
+[node name="Robot" parent="." instance=ExtResource("2_dm0gm")]
+position = Vector2(673, 646)
+mass = 0.05
+
+[node name="Camera2D" parent="." instance=ExtResource("2_nwtlb")]
+position = Vector2(665, 466)
+zoom = Vector2(1, 1)
+
+[node name="DampedSpringJoint2D2" type="DampedSpringJoint2D" parent="."]
+position = Vector2(1259, 267)
+node_a = NodePath("../RigidBody2D3")
+node_b = NodePath("../StaticBody2D")
+stiffness = 50.0
+
+[node name="DampedSpringJoint2D3" type="DampedSpringJoint2D" parent="."]
+position = Vector2(1260, 391)
+node_a = NodePath("../RigidBody2D3")
+node_b = NodePath("../RigidBody2D4")
+rest_length = 20.0
+stiffness = 10.0
+
+[node name="RigidBody2D3" type="RigidBody2D" parent="."]
+position = Vector2(1262, 331)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D3"]
+shape = SubResource("CircleShape2D_xbkjp")
+
+[node name="RigidBody2D4" type="RigidBody2D" parent="."]
+position = Vector2(1261, 453)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RigidBody2D4"]
+shape = SubResource("CircleShape2D_xbkjp")

@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://cunci2twkihny"]
+
+[ext_resource type="Texture2D" uid="uid://bbnlau37ph2py" path="res://sprites/robot.svg" id="1_w75v5"]
+
+[node name="Robot" type="RigidBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.123058, 0.123058)
+texture = ExtResource("1_w75v5")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(-50, -10, -50, 35, -27, 52, 23, 52, 49, 37, 49, -9, 57, -21, 48, -34, 37, -28, 26, -35, 26, -49, 12, -54, 6, -43, -6, -43, -12, -54, -27, -48, -26, -37, -37, -28, -47, -34, -57, -21)

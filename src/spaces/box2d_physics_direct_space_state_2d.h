@@ -29,6 +29,13 @@ public:
 	Dictionary cast_shape(const Ref<PhysicsShapeQueryParameters2D> &p_parameters);
 	TypedArray<Dictionary> cast_shape_all(const Ref<PhysicsShapeQueryParameters2D> &p_parameters, int32_t p_max_results = 32);
 
+	/// Hands the engine side pointer straight back to Godot. Resolving through `ObjectDB::get_instance`
+	/// looks tidier but mints a godot-cpp instance binding for every collider a query reports, and a
+	/// scene casting a thousand rays a frame then crashes in a binding free callback during teardown.
+	static Object *get_collider(uint64_t p_object_id) {
+		return reinterpret_cast<Object *>(gdextension_interface::object_get_instance_from_id(p_object_id));
+	}
+
 	b2QueryFilter make_filter(uint64_t p_collision_mask, bool p_collide_bodies, bool p_collide_areas);
 
 private:

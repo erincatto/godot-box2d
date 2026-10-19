@@ -85,8 +85,15 @@ Every push is built for Windows, Linux, macOS, Android, iOS and web by
 ## The demo project
 
 `demo/` is an ordinary Godot project and doubles as the test suite, as there is no automated one.
-Build first, then open `demo/` in Godot 4.7+; it already selects the Box2D server. Each root scene
-exercises one subsystem:
+Build first, then open `demo/` in Godot 4.7+; it already selects the Box2D server.
+
+**Turn on Debug → Visible Collision Shapes first.** The scenes are built from bodies and collision
+shapes with no sprites or other drawable nodes, so without it every one of them runs correctly but
+renders an empty background. The setting lives in the gitignored `.godot/` editor state, so it does
+not survive a fresh clone or a new Godot version. From the command line the flag is
+`--debug-collisions`.
+
+Each root scene exercises one subsystem:
 
 | Scene | Covers |
 |---|---|

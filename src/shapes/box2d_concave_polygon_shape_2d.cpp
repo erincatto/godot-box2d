@@ -14,9 +14,7 @@ void Box2DConcavePolygonShape2D::add_to_body(Box2DShapeInstance *p_instance) con
 	for (int i = 0; i < arr.size(); i += 2) {
 		b2Vec2 point_a = to_box2d(shape_transform.xform(arr[i]));
 		b2Vec2 point_b = to_box2d(shape_transform.xform(arr[i + 1]));
-
-		// Box2D rejects these, and Godot accepts them
-		if (b2DistanceSquared(point_a, point_b) <= B2_LINEAR_SLOP * B2_LINEAR_SLOP) {
+		if (box2d_is_degenerate_segment(point_a, point_b)) {
 			continue;
 		}
 
@@ -44,6 +42,9 @@ int Box2DConcavePolygonShape2D::overlap(const OverlapQuery &p_query, const Trans
 	for (int i = 0; i < arr.size(); i += 2) {
 		capsule.center1 = to_box2d(shape_transform.xform(arr[i]));
 		capsule.center2 = to_box2d(shape_transform.xform(arr[i + 1]));
+		if (box2d_is_degenerate_segment(capsule.center1, capsule.center2)) {
+			continue;
+		}
 
 		int count = box2d_overlap_shape(capsule, query, results);
 		query.max_results -= count;

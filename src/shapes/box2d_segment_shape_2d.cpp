@@ -28,7 +28,7 @@ bool Box2DSegmentShape2D::make_segment(const Transform2D &p_transform, const Var
 	p_segment.point1 = to_box2d(p_transform.xform(rect.position));
 	p_segment.point2 = to_box2d(p_transform.xform(rect.size));
 
-	return true;
+	return !box2d_is_degenerate_segment(p_segment.point1, p_segment.point2);
 }
 
 bool Box2DSegmentShape2D::make_capsule_segment(const Transform2D &p_transform, const Variant &p_data, b2Capsule &p_capsule) {
@@ -41,5 +41,5 @@ bool Box2DSegmentShape2D::make_capsule_segment(const Transform2D &p_transform, c
 	p_capsule.center1 = to_box2d(p_transform.xform(rect.position));
 	p_capsule.center2 = to_box2d(p_transform.xform(rect.size));
 
-	return true;
+	return !box2d_is_degenerate_segment(p_capsule.center1, p_capsule.center2);
 }

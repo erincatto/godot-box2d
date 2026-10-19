@@ -1,9 +1,16 @@
 name: Build GDExtension
 on:
   workflow_call:
+  # Branch pushes are covered by their pull request, so only main builds on push
   push:
+    branches: [main]
   pull_request:
   merge_group:
+
+# A newer push to the same branch makes the running build pointless
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -18,7 +25,7 @@ jobs:
           - { platform: macos, arch: universal, os: macos-latest, flags: -G Xcode, osx-archs: 'arm64;x86_64', build-flags: --config Release }
           - { platform: android, arch: arm64, abi: arm64-v8a, os: ubuntu-22.04 }
           - { platform: android, arch: x86_64, abi: x86_64, os: ubuntu-22.04 }
-          - { platform: ios, arch: arm64, os: macos-latest, flags: -G Xcode -DCMAKE_SYSTEM_NAME=iOS, osx-archs: arm64, build-flags: --config Release }
+          - { platform: ios, arch: arm64, os: macos-latest, flags: -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_SYSTEM_PROCESSOR=arm64, osx-archs: arm64, build-flags: --config Release }
           # The manifest names the nothreads web build
           - { platform: web, arch: wasm32, os: ubuntu-22.04, flags: -DGODOTCPP_THREADS=OFF }
         target-type: [template_debug, template_release]

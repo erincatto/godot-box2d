@@ -7,6 +7,11 @@ include(FetchContent)
 # The source overrides virtuals whose signatures only exist from 4.7 on
 set(GODOTCPP_DEFAULT_API_VERSION "4.7")
 
+# Generates bindings only for the classes the extension touches, a small fraction of the API.
+# A class or native struct missing from the list drops every method that mentions it, which
+# surfaces as a compile error because every virtual is marked override.
+set(GODOTCPP_BUILD_PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/build_profile.json" CACHE FILEPATH "godot-cpp build profile")
+
 # Box2D is linked into the extension, never shipped beside it
 set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -45,11 +50,8 @@ else()
 endif()
 
 if(EMSCRIPTEN)
-	# The override godot-cpp applies to its own project. Emscripten refuses shared libraries without it.
-	set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
-	set(CMAKE_SHARED_LIBRARY_CREATE_C_FLAGS "-sSIDE_MODULE=1")
-	set(CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS "-sSIDE_MODULE=1")
-	set(CMAKE_SHARED_LIBRARY_SUFFIX ".wasm")
+	# godot-cpp applies this only to its own project. Emscripten refuses shared libraries without it.
+	include(${godot-cpp_SOURCE_DIR}/cmake/emsdkHack.cmake)
 endif()
 
 file(GLOB sources CONFIGURE_DEPENDS
@@ -64,14 +66,13 @@ add_library(godot-box2d SHARED ${sources})
 target_include_directories(godot-box2d PRIVATE src)
 target_link_libraries(godot-box2d PRIVATE godot-cpp box2d)
 
-file(GLOB doc_xml CONFIGURE_DEPENDS doc_classes/*.xml)
-if(doc_xml AND GODOTCPP_TARGET MATCHES "editor|template_debug")
-	target_doc_sources(godot-box2d "${doc_xml}")
-endif()
-
 # Must match the names in demo/bin/godot-box2d.gdextension, which nothing regenerates.
 # That is godot-cpp's suffix without .dev, and no arch on a universal macOS build.
 get_target_property(arch godot-cpp GODOTCPP_ARCH)
+if(NOT arch)
+	# A cross build without a toolchain file leaves the processor unset. Set CMAKE_SYSTEM_PROCESSOR.
+	message(FATAL_ERROR "No target architecture detected, the library name would not match the manifest")
+endif()
 set(suffix ".${platform}.${GODOTCPP_TARGET}")
 if(GODOTCPP_PRECISION STREQUAL "double")
 	string(APPEND suffix ".double")
@@ -101,6 +102,11 @@ set_target_properties(godot-box2d PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
 	RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
 )
+
+# The Emscripten workaround clears the shared library suffix
+if(EMSCRIPTEN)
+	set_target_properties(godot-box2d PROPERTIES SUFFIX ".wasm")
+endif()
 
 # Xcode refuses an unsigned iOS library. Godot signs the app at export, so the build need not.
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")

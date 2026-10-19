@@ -39,7 +39,7 @@ void box2d_godot_presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold *ma
 		return;
 	}
 
-	Vector2 godot_normal = to_godot_normalized(manifold->normal);
+	Vector2 godot_normal = to_godot(manifold->normal);
 
 	// The normal points from A to B, so B sees it reversed.
 	if (shape_a->should_filter_one_way_collision(godot_normal) ||
@@ -56,7 +56,7 @@ bool box2d_godot_precontinuous(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Pos poi
 		return true;
 	}
 
-	Vector2 godot_normal = to_godot_normalized(normal);
+	Vector2 godot_normal = to_godot(normal);
 
 	// The normal points from A to B, so B sees it reversed.
 	return !shape_a->should_filter_one_way_collision(godot_normal) &&

@@ -1413,7 +1413,23 @@ void Box2DPhysicsServer2D::_set_active(bool p_active) {
 	active = p_active;
 }
 
+// Box2D's default handler breaks into the debugger, which takes the whole editor down.
+// Report the assertion and let Box2D take its fallback path instead.
+static int box2d_assert_callback(const char *p_condition, const char *p_file, int p_line) {
+	_err_print_error("Box2D", p_file, p_line, String("Box2D assertion failed: ") + p_condition);
+	return 0;
+}
+
+// The default handler prints to stdout, which never reaches the editor. Box2D logs here when it
+// rejects invalid input, in every build, so a dropped call would otherwise go unnoticed.
+static void box2d_log_callback(const char *p_message) {
+	WARN_PRINT(String("Box2D: ") + String(p_message).strip_edges());
+}
+
 void Box2DPhysicsServer2D::_init() {
+	b2SetAssertCallback(box2d_assert_callback);
+	b2SetLogCallback(box2d_log_callback);
+
 	// Runs before the first world, body or shape def is built, which the length unit requires.
 	box2d_set_pixels_per_meter(Box2DProjectSettings::get_pixels_per_meter());
 }

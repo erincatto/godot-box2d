@@ -426,7 +426,7 @@ Dictionary Box2DDirectSpaceState2D::cast_shape(const Ref<PhysicsShapeQueryParame
 	ObjectID id = hit.object->get_instance_id();
 	result["collider_id"] = id;
 	if (id.is_valid()) {
-		result["collider"] = get_collider(id);
+		result["collider"] = get_collider_variant(id);
 	}
 
 	return result;
@@ -483,7 +483,7 @@ TypedArray<Dictionary> Box2DDirectSpaceState2D::cast_shape_all(
 		ObjectID id = hit.object->get_instance_id();
 		result["collider_id"] = id;
 		if (id.is_valid()) {
-			result["collider"] = get_collider(id);
+			result["collider"] = get_collider_variant(id);
 		}
 		hits.push_back(result);
 	}

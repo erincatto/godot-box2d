@@ -36,6 +36,17 @@ public:
 		return reinterpret_cast<Object *>(gdextension_interface::object_get_instance_from_id(p_object_id));
 	}
 
+	/// The same engine pointer as a Variant, for results handed to scripts. The Object constructor
+	/// cannot take it, since it reads the wrapper's owner field and this pointer has no wrapper.
+	static Variant get_collider_variant(uint64_t p_object_id) {
+		static GDExtensionVariantFromTypeConstructorFunc from_object =
+				gdextension_interface::get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_OBJECT);
+		GodotObject *object = gdextension_interface::object_get_instance_from_id(p_object_id);
+		Variant result;
+		from_object(result._native_ptr(), &object);
+		return result;
+	}
+
 	b2QueryFilter make_filter(uint64_t p_collision_mask, bool p_collide_bodies, bool p_collide_areas);
 
 private:

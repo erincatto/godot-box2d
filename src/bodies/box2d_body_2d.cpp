@@ -271,14 +271,12 @@ void Box2DBody2D::set_sleep_enabled(bool p_can_sleep) {
 		return;
 	}
 
-	b2Body_EnableSleep(body_id, p_can_sleep);
+	b2Body_EnableSleeping(body_id, p_can_sleep);
 }
 
 /// Optimized function for updating rotation and position while preserving scale and skew.
 /// The tradeoff is that values for scale and skew are subject to slight precision loss.
 static void set_rotation_and_position_fast(Transform2D &p_xf, b2Rot p_rot, Vector2 p_pos) {
-	TracyZoneScoped("Box2DBody2D::sync_state::set_rotation_and_position (fast)");
-
 	b2Rot current = { p_xf.columns[0].x, p_xf.columns[0].y };
 
 	float delta_angle = b2RelativeAngle(current, p_rot);
@@ -290,8 +288,6 @@ static void set_rotation_and_position_fast(Transform2D &p_xf, b2Rot p_rot, Vecto
 
 /// Slower function for updating rotation and position. Consistent with Godot Physics.
 static void set_rotation_and_position(Transform2D &p_xf, float p_rot, Vector2 p_pos) {
-	TracyZoneScoped("Box2DBody2D::sync_state::set_rotation_and_position");
-
 	real_t det_sign = Math::sign(p_xf.determinant());
 	Vector2 scale = Vector2(p_xf.columns[0].length(), det_sign * p_xf.columns[1].length());
 	real_t skew = Math::acos(p_xf.columns[0].normalized().dot(det_sign * p_xf.columns[1].normalized())) - (real_t)Math::PI * 0.5f;
@@ -300,8 +296,6 @@ static void set_rotation_and_position(Transform2D &p_xf, float p_rot, Vector2 p_
 }
 
 void Box2DBody2D::sync_state(const b2Transform &p_transform, bool p_fell_asleep) {
-	TracyZoneScoped("Box2DBody2D::sync_state");
-
 	if (!in_space()) {
 		return;
 	}
@@ -312,8 +306,6 @@ void Box2DBody2D::sync_state(const b2Transform &p_transform, bool p_fell_asleep)
 	set_rotation_and_position(current_transform, b2Rot_GetAngle(p_transform.q), to_godot(p_transform.p));
 
 	if (body_state_callback_is_valid || body_state_callback.is_valid()) {
-		TracyZoneScoped("Body State Callback");
-
 		static thread_local Array arguments = []() {
 			Array array;
 			array.resize(1);

@@ -18,7 +18,7 @@ extension is enabled.
 ## Requirements
 
 - Godot 4.7 or later
-- To build from source: Python 3 and [SCons](https://scons.org/)
+- To build from source: CMake 3.24 or later, Git and Python 3
 
 ## Installation
 
@@ -46,39 +46,31 @@ extension has loaded, which makes the dropdown a quick way to confirm the instal
 
 ## Building from source
 
-The submodules are required and the build stops immediately without them.
-
 ```bash
-git submodule update --init --recursive
-scons target=template_debug platform=windows arch=x86_64
+cmake --preset windows-debug
+cmake --build --preset windows-debug
 ```
 
-Set `platform` and `arch` to suit your machine: `windows`, `linux`, `macos`, `android`, `ios` or
-`web`. Build products land in `bin/<platform>/` and are copied into `demo/bin/<platform>/`
-automatically, so building also refreshes the demo project in place.
+Presets exist for `windows`, `linux` and `macos`, each with `-debug` and `-release`. The first
+configure downloads [godot-cpp](https://github.com/godotengine/godot-cpp) and
+[Box2D](https://github.com/erincatto/box2d) through CMake's FetchContent, so there are no
+submodules to initialize. The library is written straight into `demo/bin/<platform>/`, so building
+also refreshes the demo project in place.
 
-| Target | Use |
-|---|---|
-| `template_debug` | running in the editor, and debug exports |
-| `template_release` | release exports |
+| Preset suffix | Godot target | Use |
+|---|---|---|
+| `-debug` | `template_debug` | running in the editor, and debug exports |
+| `-release` | `template_release` | release exports |
 
-**Build `template_debug`, not `target=editor`.** The manifest maps Godot's `.debug` feature tag to
-the `template_debug` filenames, so an `editor` build produces a name that no manifest entry matches.
-The extension then fails to load silently and physics falls back to Godot Physics.
+The target is the `GODOTCPP_TARGET` cache variable. **Use `template_debug`, not `editor`.** The
+manifest maps Godot's `.debug` feature tag to the `template_debug` filenames, so an `editor` build
+produces a name that no manifest entry matches. The extension then fails to load silently and
+physics falls back to Godot Physics.
 
-Box2D itself is compiled from `thirdparty/box2d` into a static library as part of the same SCons
-run, so there is no separate Box2D build step.
+To build against a local Box2D checkout instead of the pinned release, configure with
+`-DFETCHCONTENT_SOURCE_DIR_BOX2D=/path/to/box2d`.
 
-To build with the [Tracy](https://github.com/wolfpld/tracy) profiler:
-
-```bash
-scons target=template_debug tracy_enabled=yes
-```
-
-Options that you want to persist can go in a `custom.py` at the repository root instead of on the
-command line.
-
-Every push is built for Windows, Linux, macOS, Android, iOS and web by
+Only 64-bit targets are supported. Every push is built for Windows, Linux, macOS, Android, iOS and web by
 `.github/workflows/builds.yml`. Those artifacts hold only the compiled libraries, so pair them with
 `demo/bin/godot-box2d.gdextension` to get an installable folder.
 

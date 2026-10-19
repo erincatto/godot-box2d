@@ -49,7 +49,7 @@ void Box2DPinJoint2D::set_lower_limit(float p_limit) {
 void Box2DPinJoint2D::set_motor_speed(float p_speed) {
 	revolute_def.motorSpeed = to_box2d(p_speed);
 	if (b2Joint_IsValid(joint_id)) {
-		b2RevoluteJoint_SetMotorSpeed(joint_id, revolute_def.motorSpeed);
+		b2RevoluteJoint_SetTargetMotorSpeed(joint_id, revolute_def.motorSpeed);
 	}
 }
 

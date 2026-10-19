@@ -193,7 +193,6 @@ int32_t Box2DPhysicsServer2D::_space_get_contact_count(const RID &p_space) const
 }
 
 Array Box2DPhysicsServer2D::space_get_body_move_events(const RID &p_space) const {
-	TracyZoneScoped("Box2DPhysicsServer2D::space_get_body_move_events");
 	Box2DSpace2D *space = space_owner.get_or_null(p_space);
 	ERR_FAIL_NULL_V(space, {});
 	ERR_FAIL_COND_V(space->is_locked(), {});
@@ -1420,8 +1419,6 @@ void Box2DPhysicsServer2D::_init() {
 }
 
 void Box2DPhysicsServer2D::_step(float p_step) {
-	TracyZoneScoped("Step");
-
 	// Exception joints cannot be created while a world is locked, so changes made since the last
 	// step land here, in time to take effect this step.
 	for (Box2DSpace2D *active_space : active_spaces) {
@@ -1443,15 +1440,9 @@ void Box2DPhysicsServer2D::_step(float p_step) {
 		memdelete(p_body);
 	}
 	bodies_to_delete.clear();
-
-#ifdef TRACY_ENABLE
-	FrameMark;
-#endif
 }
 
 void Box2DPhysicsServer2D::_flush_queries() {
-	TracyZoneScoped("Flush Queries");
-
 	if (!active) {
 		return;
 	}

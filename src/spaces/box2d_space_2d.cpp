@@ -5,14 +5,12 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 void task_function(void *p_userdata) {
-	TracyZoneScoped("Box2D Task");
-
 	Box2DTaskData *data = static_cast<Box2DTaskData *>(p_userdata);
 	data->task(data->task_context);
 }
 
 /// Box2D packs the worker index into the task context, so one enqueue is one run of one callback.
-void *enqueue_task_callback(b2TaskCallback *task, void *taskContext, void *userContext) {
+void *enqueue_task_callback(b2TaskCallbackFcn *task, void *taskContext, void *userContext) {
 	Box2DTaskData *task_data = new Box2DTaskData{ 0, task, taskContext };
 
 	static const String task_name("Box2D Task");
@@ -178,8 +176,6 @@ void Box2DSpace2D::rebuild_exception_joints(const Box2DPhysicsServer2D *p_server
 }
 
 void Box2DSpace2D::sync_state() {
-	TracyZoneScoped("Box2DSpace2D::sync_state");
-
 	for (Box2DBody2D *body : force_integration_list) {
 		body->call_force_integration_callback();
 	}

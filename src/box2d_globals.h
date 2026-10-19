@@ -6,13 +6,6 @@
 #include <godot_cpp/templates/vector.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#ifdef TRACY_ENABLE
-#include "../thirdparty/tracy/public/tracy/Tracy.hpp"
-#define TracyZoneScoped(name) ZoneScopedN(name)
-#else
-#define TracyZoneScoped(name)
-#endif
-
 using namespace godot;
 
 /// Box2D is told how large a meter is at startup, so it scales its own tolerances and def

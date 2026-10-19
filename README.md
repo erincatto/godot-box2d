@@ -160,7 +160,8 @@ The same, but returns every hit along the motion sorted by distance rather than 
 
 Most of the Physics API has been implemented, but the following features do not have parity with Godot Physics:
 
-- `WorldBoundaryShape2D` unsupported (planned for a future version of Box2D)
+- `WorldBoundaryShape2D` is a box 2 km on each side of the boundary's origin and 2 km deep, not an
+  infinite plane. Bodies that travel past its ends fall around it.
 - `SeparationRayShape2D` unsupported
 - Space parameters (`space_set_param`) unsupported because Box2D v3 uses a different solver
 - "Cast Ray" CCD mode (`CCDMode::CCD_MODE_CAST_RAY`) unsupported

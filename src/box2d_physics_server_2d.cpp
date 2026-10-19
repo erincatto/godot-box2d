@@ -7,6 +7,7 @@
 #include "shapes/box2d_rectangle_shape_2d.h"
 #include "shapes/box2d_segment_shape_2d.h"
 #include "shapes/box2d_separation_ray_shape_2d.h"
+#include "shapes/box2d_world_boundary_shape_2d.h"
 
 #include "joints/box2d_damped_spring_joint_2d.h"
 #include "joints/box2d_groove_joint_2d.h"
@@ -43,8 +44,10 @@ Box2DPhysicsServer2D *Box2DPhysicsServer2D::get_singleton() {
 
 // Shape API
 RID Box2DPhysicsServer2D::_world_boundary_shape_create() {
-	ERR_PRINT_ONCE("Box2D: World boundary shape is not supported yet. This feature is planned for v3.2.");
-	return RID();
+	Box2DWorldBoundaryShape2D *shape = memnew(Box2DWorldBoundaryShape2D);
+	RID rid = shape_owner.make_rid(shape);
+	shape->set_rid(rid);
+	return rid;
 }
 
 RID Box2DPhysicsServer2D::_separation_ray_shape_create() {

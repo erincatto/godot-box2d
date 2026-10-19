@@ -101,3 +101,8 @@ set_target_properties(godot-box2d PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
 	RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
 )
+
+# Xcode refuses an unsigned iOS library. Godot signs the app at export, so the build need not.
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+	set_target_properties(godot-box2d PROPERTIES XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
+endif()

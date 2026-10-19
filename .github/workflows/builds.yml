@@ -15,10 +15,10 @@ jobs:
         target:
           - { platform: linux, arch: x86_64, os: ubuntu-22.04, flags: -G Ninja -DCMAKE_BUILD_TYPE=Release }
           - { platform: windows, arch: x86_64, os: windows-latest, flags: -A x64, build-flags: --config Release }
-          - { platform: macos, arch: universal, os: macos-latest, flags: '-G Xcode "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"', build-flags: --config Release }
+          - { platform: macos, arch: universal, os: macos-latest, flags: -G Xcode, osx-archs: 'arm64;x86_64', build-flags: --config Release }
           - { platform: android, arch: arm64, abi: arm64-v8a, os: ubuntu-22.04 }
           - { platform: android, arch: x86_64, abi: x86_64, os: ubuntu-22.04 }
-          - { platform: ios, arch: arm64, os: macos-latest, flags: -G Xcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64, build-flags: --config Release }
+          - { platform: ios, arch: arm64, os: macos-latest, flags: -G Xcode -DCMAKE_SYSTEM_NAME=iOS, osx-archs: arm64, build-flags: --config Release }
           # The manifest names the nothreads web build
           - { platform: web, arch: wasm32, os: ubuntu-22.04, flags: -DGODOTCPP_THREADS=OFF }
         target-type: [template_debug, template_release]
@@ -49,14 +49,26 @@ jobs:
 
       - name: Configure
         shell: bash
+        env:
+          PLATFORM: ${{ matrix.target.platform }}
+          TARGET_TYPE: ${{ matrix.target-type }}
+          FLAGS: ${{ matrix.target.flags }}
+          OSX_ARCHS: ${{ matrix.target.osx-archs }}
+          ANDROID_ABI: ${{ matrix.target.abi }}
+          NDK_PATH: ${{ steps.ndk.outputs.ndk-path }}
         run: |
-          flags="${{ matrix.target.flags }}"
-          if [ "${{ matrix.target.platform }}" = android ]; then
-            flags="-G Ninja -DCMAKE_BUILD_TYPE=Release --toolchain ${{ steps.ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake -DANDROID_PLATFORM=24 -DANDROID_ABI=${{ matrix.target.abi }}"
-          elif [ "${{ matrix.target.platform }}" = web ]; then
-            flags="$flags -G Ninja -DCMAKE_BUILD_TYPE=Release --toolchain $EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+          # Word splitting is wanted for the plain flags. The architecture list holds a semicolon, so it
+          # stays one quoted argument.
+          args=(-S . -B build "-DGODOTCPP_TARGET=$TARGET_TYPE" $FLAGS)
+          if [ -n "$OSX_ARCHS" ]; then
+            args+=("-DCMAKE_OSX_ARCHITECTURES=$OSX_ARCHS")
           fi
-          eval cmake -S . -B build -DGODOTCPP_TARGET=${{ matrix.target-type }} $flags
+          if [ "$PLATFORM" = android ]; then
+            args+=(-G Ninja -DCMAKE_BUILD_TYPE=Release --toolchain "$NDK_PATH/build/cmake/android.toolchain.cmake" -DANDROID_PLATFORM=24 "-DANDROID_ABI=$ANDROID_ABI")
+          elif [ "$PLATFORM" = web ]; then
+            args+=(-G Ninja -DCMAKE_BUILD_TYPE=Release --toolchain "$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+          fi
+          cmake "${args[@]}"
 
       - name: Build
         run: cmake --build build ${{ matrix.target.build-flags }}

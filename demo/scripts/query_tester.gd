@@ -52,6 +52,11 @@ func _ready() -> void:
 	shape_color.a = 0.6
 
 
+func _exit_tree() -> void:
+	for rid in [circle_rid, capsule_rid, rectangle_rid, polygon_rid]:
+		PhysicsServer2D.free_rid(rid)
+
+
 func _physics_process(delta: float) -> void:
 	global_position = get_global_mouse_position()
 	queue_redraw()

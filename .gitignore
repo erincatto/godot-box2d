@@ -17,25 +17,14 @@ demo/bin/macos/*
 demo/bin/windows/*
 !demo/bin/windows/.gitkeep
 !demo/bin/*.gdextension
-.sconsign*.dblite
-
-# Ignore custom.py
-custom.py
 
 # Ignore generated compile_commands.json
 compile_commands.json
 
-# Ignore files generated for documentation
-/src/gen
-
 # Binaries
 *.o
-*.os
 *.so
 *.obj
-*.bc
-*.pyc
-*.dblite
 *.pdb
 *.lib
 *.config
@@ -52,8 +41,9 @@ compile_commands.json
 
 # VSCode
 .vscode/*
-!.vscode/extensions.json
-.DS_Store
 
 .vs/*
-/CLAUDE.md
+
+# CMake
+/build/
+CMakeUserPresets.json

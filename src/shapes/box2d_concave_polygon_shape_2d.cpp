@@ -10,9 +10,14 @@ void Box2DConcavePolygonShape2D::add_to_body(Box2DShapeInstance *p_instance) con
 	Transform2D shape_transform = p_instance->get_global_transform();
 	b2ShapeDef shape_def = p_instance->get_shape_def();
 
-	for (int i = 0; i < arr.size() - 1; i++) {
+	// Godot stores independent segments as point pairs, not a connected chain
+	for (int i = 0; i < arr.size(); i += 2) {
 		b2Vec2 point_a = to_box2d(shape_transform.xform(arr[i]));
 		b2Vec2 point_b = to_box2d(shape_transform.xform(arr[i + 1]));
+		if (box2d_is_degenerate_segment(point_a, point_b)) {
+			continue;
+		}
+
 		b2Segment segment;
 		segment.point1 = point_a;
 		segment.point2 = point_b;
@@ -34,9 +39,12 @@ int Box2DConcavePolygonShape2D::overlap(const OverlapQuery &p_query, const Trans
 	b2Capsule capsule;
 	capsule.radius = 0.0;
 
-	for (int i = 0; i < arr.size() - 1; i++) {
+	for (int i = 0; i < arr.size(); i += 2) {
 		capsule.center1 = to_box2d(shape_transform.xform(arr[i]));
 		capsule.center2 = to_box2d(shape_transform.xform(arr[i + 1]));
+		if (box2d_is_degenerate_segment(capsule.center1, capsule.center2)) {
+			continue;
+		}
 
 		int count = box2d_overlap_shape(capsule, query, results);
 		query.max_results -= count;

@@ -35,7 +35,7 @@ Box2DDampedSpringJoint2D::Box2DDampedSpringJoint2D(const Vector2 &p_anchor_a, co
 void Box2DDampedSpringJoint2D::set_rest_length(float p_length) {
 	distance_def.length = to_box2d(p_length);
 	if (b2Joint_IsValid(joint_id)) {
-		b2DistanceJoint_SetLength(joint_id, distance_def.length);
+		b2DistanceJoint_SetRestLength(joint_id, distance_def.length);
 	}
 }
 
@@ -70,7 +70,7 @@ void Box2DDampedSpringJoint2D::update_stiffness() {
 		mass = is_a_dynamic ? mass_a : mass_b;
 	}
 
-	distance_def.hertz = Math::sqrt(stiffness / mass) / (2.0 * Math_PI);
+	distance_def.hertz = Math::sqrt(stiffness / mass) / (2.0 * Math::PI);
 
 	if (b2Joint_IsValid(joint_id)) {
 		b2DistanceJoint_SetSpringHertz(joint_id, distance_def.hertz);

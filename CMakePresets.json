@@ -1,0 +1,60 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-debug",
+      "displayName": "Windows template_debug (default Visual Studio)",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "binaryDir": "${sourceDir}/build/windows-debug",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_debug" }
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows template_release (default Visual Studio)",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "binaryDir": "${sourceDir}/build/windows-release",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_release" }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux template_debug",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "binaryDir": "${sourceDir}/build/linux-debug",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_debug", "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux template_release",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "binaryDir": "${sourceDir}/build/linux-release",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_release", "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "macOS template_debug (universal)",
+      "generator": "Xcode",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "binaryDir": "${sourceDir}/build/macos-debug",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_debug", "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64" }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS template_release (universal)",
+      "generator": "Xcode",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "binaryDir": "${sourceDir}/build/macos-release",
+      "cacheVariables": { "GODOTCPP_TARGET": "template_release", "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-debug", "configurePreset": "windows-debug", "configuration": "RelWithDebInfo" },
+    { "name": "windows-release", "configurePreset": "windows-release", "configuration": "Release" },
+    { "name": "linux-debug", "configurePreset": "linux-debug" },
+    { "name": "linux-release", "configurePreset": "linux-release" },
+    { "name": "macos-debug", "configurePreset": "macos-debug", "configuration": "RelWithDebInfo" },
+    { "name": "macos-release", "configurePreset": "macos-release", "configuration": "Release" }
+  ]
+}

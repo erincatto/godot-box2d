@@ -29,9 +29,22 @@ public:
 	Dictionary cast_shape(const Ref<PhysicsShapeQueryParameters2D> &p_parameters);
 	TypedArray<Dictionary> cast_shape_all(const Ref<PhysicsShapeQueryParameters2D> &p_parameters, int32_t p_max_results = 32);
 
-	static Object *get_instance_hack(uint64_t p_object_id) {
-		// ????
-		return reinterpret_cast<Object *>((GodotObject *)(internal::gdextension_interface_object_get_instance_from_id(p_object_id)));
+	/// Hands the engine side pointer straight back to Godot. Resolving through `ObjectDB::get_instance`
+	/// looks tidier but mints a godot-cpp instance binding for every collider a query reports, and a
+	/// scene casting a thousand rays a frame then crashes in a binding free callback during teardown.
+	static Object *get_collider(uint64_t p_object_id) {
+		return reinterpret_cast<Object *>(gdextension_interface::object_get_instance_from_id(p_object_id));
+	}
+
+	/// The same engine pointer as a Variant, for results handed to scripts. The Object constructor
+	/// cannot take it, since it reads the wrapper's owner field and this pointer has no wrapper.
+	static Variant get_collider_variant(uint64_t p_object_id) {
+		static GDExtensionVariantFromTypeConstructorFunc from_object =
+				gdextension_interface::get_variant_from_type_constructor(GDEXTENSION_VARIANT_TYPE_OBJECT);
+		GodotObject *object = gdextension_interface::object_get_instance_from_id(p_object_id);
+		Variant result;
+		from_object(result._native_ptr(), &object);
+		return result;
 	}
 
 	b2QueryFilter make_filter(uint64_t p_collision_mask, bool p_collide_bodies, bool p_collide_areas);

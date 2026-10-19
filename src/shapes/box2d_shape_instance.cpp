@@ -78,8 +78,9 @@ bool Box2DShapeInstance::should_filter_one_way_collision(const Vector2 &p_motion
 	return false;
 }
 
-/// Presolve gets a point and a normal but no separation, so the depth escape that lets a body
-/// already sunk into a platform keep falling is only available on the character and query paths.
+/// Filters on normal alignment alone, for the simulation paths. Time of impact carries no depth.
+/// The discrete manifold does, but the depth escape is deliberately left off there because the
+/// one-way margin has never applied during simulation and wiring it up would change behavior.
 bool Box2DShapeInstance::should_filter_one_way_collision(const Vector2 &p_normal) const {
 	ERR_FAIL_COND_V(!shape, false);
 	ERR_FAIL_COND_V(!object, false);

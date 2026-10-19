@@ -1,0 +1,21 @@
+{
+	"enabled_classes": [
+		"AnimatableBody2D",
+		"CharacterBody2D",
+		"Engine",
+		"OS",
+		"PhysicsDirectBodyState2DExtension",
+		"PhysicsDirectSpaceState2DExtension",
+		"PhysicsServer2D",
+		"PhysicsServer2DExtension",
+		"PhysicsServer2DExtensionMotionResult",
+		"PhysicsServer2DExtensionRayResult",
+		"PhysicsServer2DExtensionShapeRestInfo",
+		"PhysicsServer2DExtensionShapeResult",
+		"PhysicsServer2DManager",
+		"PhysicsShapeQueryParameters2D",
+		"ProjectSettings",
+		"RigidBody2D",
+		"WorkerThreadPool"
+	]
+}

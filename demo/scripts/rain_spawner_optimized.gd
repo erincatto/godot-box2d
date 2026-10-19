@@ -72,3 +72,4 @@ func _draw() -> void:
 func _exit_tree() -> void:
 	for rid in bodies:
 		Box2DPhysicsServer2D.free_rid(rid)
+	Box2DPhysicsServer2D.free_rid(shape_rid)

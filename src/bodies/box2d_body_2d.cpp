@@ -271,14 +271,12 @@ void Box2DBody2D::set_sleep_enabled(bool p_can_sleep) {
 		return;
 	}
 
-	b2Body_EnableSleep(body_id, p_can_sleep);
+	b2Body_EnableSleeping(body_id, p_can_sleep);
 }
 
 /// Optimized function for updating rotation and position while preserving scale and skew.
 /// The tradeoff is that values for scale and skew are subject to slight precision loss.
 static void set_rotation_and_position_fast(Transform2D &p_xf, b2Rot p_rot, Vector2 p_pos) {
-	TracyZoneScoped("Box2DBody2D::sync_state::set_rotation_and_position (fast)");
-
 	b2Rot current = { p_xf.columns[0].x, p_xf.columns[0].y };
 
 	float delta_angle = b2RelativeAngle(current, p_rot);
@@ -290,18 +288,14 @@ static void set_rotation_and_position_fast(Transform2D &p_xf, b2Rot p_rot, Vecto
 
 /// Slower function for updating rotation and position. Consistent with Godot Physics.
 static void set_rotation_and_position(Transform2D &p_xf, float p_rot, Vector2 p_pos) {
-	TracyZoneScoped("Box2DBody2D::sync_state::set_rotation_and_position");
-
-	real_t det_sign = Math::sign(p_xf.basis_determinant());
+	real_t det_sign = Math::sign(p_xf.determinant());
 	Vector2 scale = Vector2(p_xf.columns[0].length(), det_sign * p_xf.columns[1].length());
-	real_t skew = Math::acos(p_xf.columns[0].normalized().dot(det_sign * p_xf.columns[1].normalized())) - (real_t)Math_PI * 0.5f;
+	real_t skew = Math::acos(p_xf.columns[0].normalized().dot(det_sign * p_xf.columns[1].normalized())) - (real_t)Math::PI * 0.5f;
 
 	p_xf = Transform2D(p_rot, scale, skew, p_pos);
 }
 
 void Box2DBody2D::sync_state(const b2Transform &p_transform, bool p_fell_asleep) {
-	TracyZoneScoped("Box2DBody2D::sync_state");
-
 	if (!in_space()) {
 		return;
 	}
@@ -312,8 +306,6 @@ void Box2DBody2D::sync_state(const b2Transform &p_transform, bool p_fell_asleep)
 	set_rotation_and_position(current_transform, b2Rot_GetAngle(p_transform.q), to_godot(p_transform.p));
 
 	if (body_state_callback_is_valid || body_state_callback.is_valid()) {
-		TracyZoneScoped("Body State Callback");
-
 		static thread_local Array arguments = []() {
 			Array array;
 			array.resize(1);
@@ -514,7 +506,7 @@ void Box2DBody2D::remove_collision_exception(RID p_rid) {
 void Box2DBody2D::destroy_exception_joints() {
 	for (b2JointId joint_id : exception_joints) {
 		if (b2Joint_IsValid(joint_id)) {
-			b2DestroyJoint(joint_id, true);
+			b2DestroyJoint(joint_id);
 		}
 	}
 	exception_joints.clear();
@@ -585,7 +577,7 @@ void Box2DBody2D::update_mass() {
 		return;
 	}
 
-	b2Body_ApplyMassFromShapes(body_id);
+	b2Body_UpdateMassFromShapes(body_id);
 
 	mass_data = b2Body_GetMassData(body_id);
 

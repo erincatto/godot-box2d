@@ -7,6 +7,7 @@
 #include "shapes/box2d_rectangle_shape_2d.h"
 #include "shapes/box2d_segment_shape_2d.h"
 #include "shapes/box2d_separation_ray_shape_2d.h"
+#include "shapes/box2d_world_boundary_shape_2d.h"
 
 #include "joints/box2d_damped_spring_joint_2d.h"
 #include "joints/box2d_groove_joint_2d.h"
@@ -43,8 +44,10 @@ Box2DPhysicsServer2D *Box2DPhysicsServer2D::get_singleton() {
 
 // Shape API
 RID Box2DPhysicsServer2D::_world_boundary_shape_create() {
-	ERR_PRINT_ONCE("Box2D: World boundary shape is not supported yet. This feature is planned for v3.2.");
-	return RID();
+	Box2DWorldBoundaryShape2D *shape = memnew(Box2DWorldBoundaryShape2D);
+	RID rid = shape_owner.make_rid(shape);
+	shape->set_rid(rid);
+	return rid;
 }
 
 RID Box2DPhysicsServer2D::_separation_ray_shape_create() {
@@ -193,7 +196,6 @@ int32_t Box2DPhysicsServer2D::_space_get_contact_count(const RID &p_space) const
 }
 
 Array Box2DPhysicsServer2D::space_get_body_move_events(const RID &p_space) const {
-	TracyZoneScoped("Box2DPhysicsServer2D::space_get_body_move_events");
 	Box2DSpace2D *space = space_owner.get_or_null(p_space);
 	ERR_FAIL_NULL_V(space, {});
 	ERR_FAIL_COND_V(space->is_locked(), {});
@@ -591,7 +593,9 @@ void Box2DPhysicsServer2D::_body_set_shape_disabled(const RID &p_body, int32_t p
 	return body->set_shape_disabled(p_shape_idx, p_disabled);
 }
 
-void Box2DPhysicsServer2D::_body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin) {
+/// Godot supplies a one-way direction as of 4.7. The normal is still derived from the shape
+/// transform, so a direction that disagrees with it is ignored for now.
+void Box2DPhysicsServer2D::_body_set_shape_as_one_way_collision(const RID &p_body, int32_t p_shape_idx, bool p_enable, float p_margin, const Vector2 &p_direction) {
 	Box2DBody2D *body = body_owner.get_or_null(p_body);
 	ERR_FAIL_NULL(body);
 	return body->set_shape_one_way_collision(p_shape_idx, p_enable, p_margin);
@@ -1412,14 +1416,28 @@ void Box2DPhysicsServer2D::_set_active(bool p_active) {
 	active = p_active;
 }
 
+// Box2D's default handler breaks into the debugger, which takes the whole editor down.
+// Report the assertion and let Box2D take its fallback path instead.
+static int box2d_assert_callback(const char *p_condition, const char *p_file, int p_line) {
+	_err_print_error("Box2D", p_file, p_line, String("Box2D assertion failed: ") + p_condition);
+	return 0;
+}
+
+// The default handler prints to stdout, which never reaches the editor. Box2D logs here when it
+// rejects invalid input, in every build, so a dropped call would otherwise go unnoticed.
+static void box2d_log_callback(const char *p_message) {
+	WARN_PRINT(String("Box2D: ") + String(p_message).strip_edges());
+}
+
 void Box2DPhysicsServer2D::_init() {
+	b2SetAssertCallback(box2d_assert_callback);
+	b2SetLogCallback(box2d_log_callback);
+
 	// Runs before the first world, body or shape def is built, which the length unit requires.
 	box2d_set_pixels_per_meter(Box2DProjectSettings::get_pixels_per_meter());
 }
 
 void Box2DPhysicsServer2D::_step(float p_step) {
-	TracyZoneScoped("Step");
-
 	// Exception joints cannot be created while a world is locked, so changes made since the last
 	// step land here, in time to take effect this step.
 	for (Box2DSpace2D *active_space : active_spaces) {
@@ -1441,15 +1459,9 @@ void Box2DPhysicsServer2D::_step(float p_step) {
 		memdelete(p_body);
 	}
 	bodies_to_delete.clear();
-
-#ifdef TRACY_ENABLE
-	FrameMark;
-#endif
 }
 
 void Box2DPhysicsServer2D::_flush_queries() {
-	TracyZoneScoped("Flush Queries");
-
 	if (!active) {
 		return;
 	}

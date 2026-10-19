@@ -17,9 +17,6 @@ Box2DPhysicsServer2D *create_box2d_physics_server() {
 void initialize_gdextension_types(ModuleInitializationLevel p_level) {
 	switch (p_level) {
 		case MODULE_INITIALIZATION_LEVEL_SERVERS: {
-#if defined(TRACY_DELAYED_INIT) && defined(TRACY_MANUAL_LIFETIME)
-			tracy::StartupProfiler();
-#endif
 			GDREGISTER_VIRTUAL_CLASS(Box2DDirectBodyState2D);
 			GDREGISTER_VIRTUAL_CLASS(Box2DDirectSpaceState2D);
 			GDREGISTER_CLASS(Box2DPhysicsServer2D);

@@ -38,6 +38,23 @@ float Box2DDirectBodyState2D::_get_inverse_inertia() const {
 	return body->get_inverse_inertia();
 }
 
+/// The accessors truncate to Godot's 32 bits, dropping the routing flags the filter carries.
+void Box2DDirectBodyState2D::_set_collision_layer(uint32_t p_layer) {
+	body->set_collision_layer(p_layer);
+}
+
+uint32_t Box2DDirectBodyState2D::_get_collision_layer() const {
+	return body->get_collision_layer();
+}
+
+void Box2DDirectBodyState2D::_set_collision_mask(uint32_t p_mask) {
+	body->set_collision_mask(p_mask);
+}
+
+uint32_t Box2DDirectBodyState2D::_get_collision_mask() const {
+	return body->get_collision_mask();
+}
+
 void Box2DDirectBodyState2D::_set_linear_velocity(const Vector2 &p_velocity) {
 	body->set_linear_velocity(p_velocity);
 }

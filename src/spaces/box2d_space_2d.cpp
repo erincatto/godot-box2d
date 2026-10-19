@@ -5,14 +5,12 @@
 #include <godot_cpp/variant/utility_functions.hpp>
 
 void task_function(void *p_userdata) {
-	TracyZoneScoped("Box2D Task");
-
 	Box2DTaskData *data = static_cast<Box2DTaskData *>(p_userdata);
 	data->task(data->task_context);
 }
 
 /// Box2D packs the worker index into the task context, so one enqueue is one run of one callback.
-void *enqueue_task_callback(b2TaskCallback *task, void *taskContext, void *userContext) {
+void *enqueue_task_callback(b2TaskCallbackFcn *task, void *taskContext, void *userContext) {
 	Box2DTaskData *task_data = new Box2DTaskData{ 0, task, taskContext };
 
 	static const String task_name("Box2D Task");
@@ -30,7 +28,27 @@ void finish_task_callback(void *taskPtr, void *userContext) {
 	}
 }
 
-bool box2d_godot_presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Pos point, b2Vec2 normal, void *context) {
+// One way collisions have to be filtered on two paths. Discrete contacts arrive as a manifold and
+// are dropped by clearing the point count. Time of impact arrives as a single point and is dropped
+// by returning false.
+void box2d_godot_presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold *manifold, void *context) {
+	const Box2DShapeInstance *shape_a = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdA));
+	const Box2DShapeInstance *shape_b = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdB));
+
+	if (!shape_a->has_one_way_collision() && !shape_b->has_one_way_collision()) {
+		return;
+	}
+
+	Vector2 godot_normal = to_godot(manifold->normal);
+
+	// The normal points from A to B, so B sees it reversed.
+	if (shape_a->should_filter_one_way_collision(godot_normal) ||
+		shape_b->should_filter_one_way_collision(-godot_normal)) {
+		manifold->pointCount = 0;
+	}
+}
+
+bool box2d_godot_precontinuous(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Pos point, b2Vec2 normal, void *context) {
 	const Box2DShapeInstance *shape_a = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdA));
 	const Box2DShapeInstance *shape_b = static_cast<Box2DShapeInstance *>(b2Shape_GetUserData(shapeIdB));
 
@@ -38,7 +56,7 @@ bool box2d_godot_presolve(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Pos point, b
 		return true;
 	}
 
-	Vector2 godot_normal = to_godot_normalized(normal);
+	Vector2 godot_normal = to_godot(normal);
 
 	// The normal points from A to B, so B sees it reversed.
 	return !shape_a->should_filter_one_way_collision(godot_normal) &&
@@ -90,7 +108,7 @@ Box2DSpace2D::Box2DSpace2D() {
 	world_id = b2CreateWorld(&world_def);
 
 	if (Box2DProjectSettings::get_presolve_enabled()) {
-		b2World_SetPreSolveCallback(world_id, box2d_godot_presolve, this);
+		b2World_SetPreSolveCallback(world_id, box2d_godot_presolve, box2d_godot_precontinuous, this);
 	}
 }
 
@@ -158,8 +176,6 @@ void Box2DSpace2D::rebuild_exception_joints(const Box2DPhysicsServer2D *p_server
 }
 
 void Box2DSpace2D::sync_state() {
-	TracyZoneScoped("Box2DSpace2D::sync_state");
-
 	for (Box2DBody2D *body : force_integration_list) {
 		body->call_force_integration_callback();
 	}

@@ -14,7 +14,7 @@ using namespace godot;
 
 struct Box2DTaskData {
 	WorkerThreadPool::TaskID task_id;
-	b2TaskCallback *task;
+	b2TaskCallbackFcn *task;
 	void *task_context;
 };
 

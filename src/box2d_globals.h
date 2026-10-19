@@ -6,13 +6,6 @@
 #include <godot_cpp/templates/vector.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#ifdef TRACY_ENABLE
-#include "../thirdparty/tracy/public/tracy/Tracy.hpp"
-#define TracyZoneScoped(name) ZoneScopedN(name)
-#else
-#define TracyZoneScoped(name)
-#endif
-
 using namespace godot;
 
 /// Box2D is told how large a meter is at startup, so it scales its own tolerances and def
@@ -44,6 +37,12 @@ _FORCE_INLINE_ b2Vec2 to_box2d(const Vector2 p_vec) {
 
 _FORCE_INLINE_ b2Vec2 to_box2d_normalized(const Vector2 p_vec) {
 	return b2Normalize(b2Vec2{ (float)p_vec.x, (float)p_vec.y });
+}
+
+/// Box2D rejects segments this short and Godot accepts them. Skipping them on the query paths as
+/// well keeps queries from hitting geometry the body does not have.
+_FORCE_INLINE_ bool box2d_is_degenerate_segment(b2Vec2 p_a, b2Vec2 p_b) {
+	return b2DistanceSquared(p_a, p_b) <= B2_LINEAR_SLOP * B2_LINEAR_SLOP;
 }
 
 /// Values are 1:1 across the boundary. These remain as the narrowing point for double builds

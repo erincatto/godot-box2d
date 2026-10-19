@@ -1,7 +1,7 @@
 [configuration]
 
 entry_symbol = "godot_box2d_init"
-compatibility_minimum = "4.3"
+compatibility_minimum = "4.7"
 
 [libraries]
 macos.debug = "./macos/libgodot-box2d.macos.template_debug.dylib"
@@ -9,9 +9,6 @@ macos.release = "./macos/libgodot-box2d.macos.template_release.dylib"
 
 ios.arm64.debug = "./ios/libgodot-box2d.ios.template_debug.arm64.dylib"
 ios.arm64.release = "./ios/libgodot-box2d.ios.template_release.arm64.dylib"
-
-windows.x86_32.debug = "./windows/godot-box2d.windows.template_debug.x86_32.dll"
-windows.x86_32.release = "./windows/godot-box2d.windows.template_release.x86_32.dll"
 
 windows.x86_64.debug = "./windows/godot-box2d.windows.template_debug.x86_64.dll"
 windows.x86_64.release = "./windows/godot-box2d.windows.template_release.x86_64.dll"
